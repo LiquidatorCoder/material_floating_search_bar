@@ -17,7 +17,8 @@ import 'util/util.dart';
 /// events before they get to the [Scrollable] and then decide based on the
 /// height of the child, whether a tap was below the content.
 class FloatingSearchBarDismissable extends StatefulWidget {
-  final Widget child;
+  final Function child;
+  final int itemCount;
 
   /// The amount of space by which to inset the child.
   final EdgeInsetsGeometry? padding;
@@ -44,20 +45,22 @@ class FloatingSearchBarDismissable extends StatefulWidget {
   /// Defaults to matching platform conventions.
   final ScrollPhysics? physics;
 
-  const FloatingSearchBarDismissable({
-    Key? key,
-    required this.child,
-    this.padding,
-    this.controller,
-    this.physics,
-  }) : super(key: key);
+  const FloatingSearchBarDismissable(
+      {Key? key,
+      required this.child,
+      this.padding,
+      this.controller,
+      this.physics,
+      required this.itemCount})
+      : super(key: key);
 
   @override
   _FloatingSearchBarDismissableState createState() =>
       _FloatingSearchBarDismissableState();
 }
 
-class _FloatingSearchBarDismissableState<E> extends State<FloatingSearchBarDismissable> {
+class _FloatingSearchBarDismissableState<E>
+    extends State<FloatingSearchBarDismissable> {
   final childKey = GlobalKey();
 
   double childHeight = 0.0;
@@ -94,35 +97,50 @@ class _FloatingSearchBarDismissableState<E> extends State<FloatingSearchBarDismi
         }
       },
       child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          final metrics = notification.metrics;
+          onNotification: (notification) {
+            final metrics = notification.metrics;
 
-          if (metrics.axis == Axis.vertical) {
-            scrollOffset = metrics.pixels;
-          }
+            if (metrics.axis == Axis.vertical) {
+              scrollOffset = metrics.pixels;
+            }
 
-          return false;
-        },
-        child: SingleChildScrollView(
-          controller: widget.controller,
-          physics: widget.physics,
-          padding: padding.add(
-            EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+            return false;
+          },
+          child: ListView.builder(
+            shrinkWrap: true,
+            padding: padding.add(
+              EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
             ),
-          ),
-          child: NotificationListener<SizeChangedLayoutNotification>(
-            onNotification: (_) {
-              _measure();
-              return true;
+            controller: widget.controller,
+            physics: widget.physics,
+            itemCount: widget.itemCount,
+            itemBuilder: (context, index) {
+              print("Building child $index");
+              return widget.child(index);
             },
-            child: SizeChangedLayoutNotifier(
-              key: childKey,
-              child: widget.child,
-            ),
+          )
+          // child: SingleChildScrollView(
+          //   controller: widget.controller,
+          //   physics: widget.physics,
+          // padding: padding.add(
+          //   EdgeInsets.only(
+          //     bottom: MediaQuery.of(context).viewInsets.bottom,
+          //   ),
+          // ),
+          //   child: NotificationListener<SizeChangedLayoutNotification>(
+          //     onNotification: (_) {
+          //       _measure();
+          //       return true;
+          //     },
+          //     child: SizeChangedLayoutNotifier(
+          //       key: childKey,
+          //       child: widget.child,
+          //     ),
+          //   ),
+          // ),
           ),
-        ),
-      ),
     );
   }
 }
